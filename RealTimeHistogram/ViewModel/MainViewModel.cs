@@ -1,4 +1,6 @@
-﻿using System;
+﻿using RealTimeHistogram.Model;
+using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -28,22 +30,21 @@ namespace RealTimeHistogram.ViewModel
             }
         }
 
-        // スクリーンインデックス
-        private int screenIndex;
-        public int ScreenIndex
+        // プロセスリスト
+        public ObservableCollection<Process> Processes { get; set; }
+
+        // 選択中プロセス
+        private Process selectedProcess;
+        public Process SelectedProcess 
         {
-            get { return screenIndex; }
+            get { return selectedProcess; }
             set
             {
-                if (value < Screen.AllScreens.Length)
-                {
-                    screenIndex = value;
-                    position = Screen.AllScreens[screenIndex].Bounds;
-                    NotifyPropertyChanged("ScreenIndex");
-                    NotifyPropertyChanged("PositionX");
-                    NotifyPropertyChanged("PositionY");
-                    NotifyPropertyChanged("Width");
-                }
+                selectedProcess = value;
+                selectedWindowRect = wm.GetWindowRectangle(selectedProcess);
+                OffsetX = OffsetY = 0;
+                Width = selectedWindowRect.Width;
+                NotifyPropertyChanged("SelectedProcess");
             }
         }
 
@@ -61,57 +62,49 @@ namespace RealTimeHistogram.ViewModel
             }
         }
 
-        // キャプチャ位置
-        private Rectangle position;
-
-        public int PositionX
+        // OffsetX
+        private int offsetX;
+        public int OffsetX
         {
-            get { return position.X - Screen.AllScreens[ScreenIndex].Bounds.X; }
+            get { return offsetX; }
             set
             {
-                if (0 <= value && value < Screen.AllScreens[ScreenIndex].Bounds.Width)
+                if (0 <= value && value < selectedWindowRect.Width)
                 {
-                    position.X = value + Screen.AllScreens[ScreenIndex].Bounds.X;
-                    position.Width = Screen.AllScreens[ScreenIndex].Bounds.Width - value;
-                    position.Height = position.Width / 2;
-                    NotifyPropertyChanged("PositionX");
-                    NotifyPropertyChanged("Width");
+                    offsetX = value;
+                    UpdatePosition();
+                    NotifyPropertyChanged("OffsetX");
                 }
             }
         }
 
-        public int PositionY
+        // OffsetY
+        private int offsetY;
+        public int OffsetY
         {
-            get { return position.Y; }
+            get { return offsetY; }
             set
             {
-                if (0 <= value && value < Screen.AllScreens[ScreenIndex].Bounds.Height)
+                if (0 <= value && value < selectedWindowRect.Height)
                 {
-                    position.Y = value;
-                    if (position.Y + position.Height <= Screen.AllScreens[ScreenIndex].Bounds.Height)
-                    {
-                        // Heightは変更しない
-                    }
-                    else
-                    {
-                        position.Height = Screen.AllScreens[ScreenIndex].Bounds.Height - position.Y;
-                        position.Width = position.Height * 2;
-                        NotifyPropertyChanged("Width");
-                    }
-                    NotifyPropertyChanged("PositionY");
+                    offsetY = value;
+                    UpdatePosition();
+                    NotifyPropertyChanged("OffsetY");
                 }
             }
         }
 
+        // Width
+        private int width;
         public int Width
         {
-            get { return position.Width; }
+            get { return width; }
             set
             {
-                if (0 < value && value <= Screen.AllScreens[ScreenIndex].Bounds.Width - (position.X - Screen.AllScreens[ScreenIndex].Bounds.X))
+                if (0 < value && value <= selectedWindowRect.Width)
                 {
-                    position.Width = value;
-                    position.Height = position.Width / 2;
+                    width = value;
+                    UpdatePosition();
                     NotifyPropertyChanged("Width");
                 }
             }
@@ -123,6 +116,9 @@ namespace RealTimeHistogram.ViewModel
         // コピー
         public ICommand Stop { get; set; }
 
+        // リフレッシュ
+        public ICommand Refresh { get; set; }
+
         // Windowタイトル
         public string WindowTitle { get; private set; }
 
@@ -131,6 +127,12 @@ namespace RealTimeHistogram.ViewModel
 
         // チャート
         private Chart chart;
+
+        // WindowManager
+        private WindowManager wm;
+
+        // 選択中Windowの位置
+        private Rectangle selectedWindowRect;
 
         /// <summary>
         /// コンストラクタ
@@ -142,20 +144,40 @@ namespace RealTimeHistogram.ViewModel
 
             WindowTitle = "RealTimeHistogram " + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).ProductVersion;
             isExecuting = false;
-            ScreenIndex = 0;
+            OffsetX = offsetY = Width = 0;
             ScaleY = 0;
-            position = Screen.AllScreens[ScreenIndex].Bounds;
-            if (position.Width > position.Height * 2)
+            Processes = new ObservableCollection<Process>();
+            wm = new WindowManager();
+            foreach (Process p in wm.GetProcessesWithMainWindowHandle())
             {
-                position.Width = position.Height * 2;
+                Processes.Add(p);
             }
-            else
-            {
-                position.Height = position.Width / 2;
-            }
+            SelectedProcess = Processes[0];
 
             Start = new DelegateCommand(startExecute, canStartExecute);
             Stop = new DelegateCommand(stopExecute, canStopExecute);
+            Refresh = new DelegateCommand(refreshExecute, null);
+        }
+
+        private void UpdatePosition()
+        {
+            // OffsetXの確認
+            if (OffsetX >= selectedWindowRect.Width)
+            {
+                OffsetX = selectedWindowRect.Width - 1;
+            }
+
+            // OffsetYの確認
+            if (OffsetY >= selectedWindowRect.Height)
+            {
+                OffsetY = selectedWindowRect.Height - 1;
+            }
+
+            // Widthの確認
+            if (OffsetX + Width > selectedWindowRect.Width)
+            {
+                Width = selectedWindowRect.Width - OffsetX;
+            }
         }
 
         /// <summary>
@@ -186,9 +208,22 @@ namespace RealTimeHistogram.ViewModel
                 {
                     sw.Start();
                     // スクリーンキャプチャ(70ms)
-                    screen = new Bitmap(position.Width, position.Height, PixelFormat.Format32bppArgb);
+                    selectedWindowRect = wm.GetWindowRectangle(SelectedProcess);
+                    if (selectedWindowRect == Rectangle.Empty)
+                    {
+                        isExecuting = false;
+                        App.Current.Dispatcher.Invoke(() => 
+                        {
+                            RaiseCanExecuteChanged();
+                        });
+                        
+                        break;
+                    }
+                    UpdatePosition();
+                    Rectangle captureRect = new Rectangle(selectedWindowRect.X + OffsetX, selectedWindowRect.Y + OffsetY, Width, Width / 2);
+                    screen = new Bitmap(captureRect.Width, captureRect.Height, PixelFormat.Format32bppArgb);
                     g = Graphics.FromImage(screen);
-                    g.CopyFromScreen(position.X, position.Y, 0, 0, screen.Size);
+                    g.CopyFromScreen(captureRect.X, captureRect.Y, 0, 0, screen.Size);
                     g.Dispose();
 
                     // 輝度計算(25ms)
@@ -273,6 +308,22 @@ namespace RealTimeHistogram.ViewModel
         private void stopExecute(object parameter)
         {
             isExecuting = false;
+        }
+
+        /// <summary>
+        /// リフレッシュボタン押下
+        /// </summary>
+        /// <param name="parameter"></param>
+        private void refreshExecute(object parameter)
+        {
+            Processes.Clear();
+            foreach (Process p in wm.GetProcessesWithMainWindowHandle())
+            {
+                Processes.Add(p);
+            }
+            SelectedProcess = Processes[0];
+            selectedWindowRect = wm.GetWindowRectangle(SelectedProcess);
+            UpdatePosition();
         }
     }
 }

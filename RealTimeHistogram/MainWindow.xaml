@@ -4,40 +4,35 @@
         xmlns:wfc="clr-namespace:System.Windows.Forms.DataVisualization.Charting;assembly=System.Windows.Forms.DataVisualization"
         Title="{Binding WindowTitle}" Height="500" Width="525">
     <DockPanel>
-        <Grid DockPanel.Dock="Top">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition />
-                <ColumnDefinition />
-                <ColumnDefinition />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition />
-                <RowDefinition />
-            </Grid.RowDefinitions>
-            <Button Grid.Column="0" Content="Start" Command="{Binding Start}" />
-            <Button Grid.Column="1" Content="Stop"  Command="{Binding Stop}"/>
-            <ComboBox Grid.Column="2" SelectedIndex="{Binding ScreenIndex}">
-                <ComboBoxItem Content="Main Screen" />
-                <ComboBoxItem Content="Sub Screen" />
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+            <Label Content="Capture" Width="120" />
+            <Button Content="Start" Width="100" Command="{Binding Start}" />
+            <Button Content="Stop"  Width="100" Command="{Binding Stop}"/>
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+            <Label Content="Select Window" Width="120" />
+            <ComboBox Width="100" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding ProcessName}" VerticalAlignment="Center" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
             </ComboBox>
-            <DockPanel Grid.Column="3">
-                <TextBlock DockPanel.Dock="Left" Text="Scale Y:" VerticalAlignment="Center" Margin="5,0,5,0" />
-                <TextBox Name="scaleY" Text="{Binding ScaleY, UpdateSourceTrigger=PropertyChanged}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
-            </DockPanel>
-            <DockPanel Grid.Row="1" Grid.Column="0">
-                <TextBlock DockPanel.Dock="Left" Text="Offset X:" VerticalAlignment="Center" Margin="5,0,5,0" />
-                <TextBox Name="offsetX" Text="{Binding PositionX}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
-            </DockPanel>
-            <DockPanel Grid.Row="1" Grid.Column="1">
-                <TextBlock DockPanel.Dock="Left" Text="Offset Y:" VerticalAlignment="Center" Margin="5,0,5,0" />
-                <TextBox Name="offsetY" Text="{Binding PositionY}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
-            </DockPanel>
-            <DockPanel Grid.Row="1" Grid.Column="2">
-                <TextBlock DockPanel.Dock="Left" Text="Width:" VerticalAlignment="Center" Margin="5,0,5,0" />
-                <TextBox Name="Width" Text="{Binding Width}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
-            </DockPanel>
-        </Grid>
+            <Button Width="100" Content="Refresh" Command="{Binding Refresh}" />
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+            <Label Content="Position" Width="120" />
+            <TextBlock Text="Offset X:" VerticalAlignment="Center" Margin="5,0,5,0" />
+            <TextBox Width="50" Name="offsetX" Text="{Binding OffsetX}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
+            <TextBlock Text="Offset Y:" VerticalAlignment="Center" Margin="5,0,5,0" />
+            <TextBox Width="50" Name="offsetY" Text="{Binding OffsetY}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
+            <TextBlock Text="Width:" VerticalAlignment="Center" Margin="5,0,5,0" />
+            <TextBox Width="50" Name="Width" Text="{Binding Width}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+            <Label Content="Histogram Scale" Width="120" />
+            <TextBox Width="50" Name="scaleY" Text="{Binding ScaleY, UpdateSourceTrigger=PropertyChanged}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
+        </StackPanel>
         <Image DockPanel.Dock="Bottom" Height="200" Source="{Binding CaptureImage}" />
         <WindowsFormsHost Name="graph">
             <wfc:Chart />

@@ -32,10 +32,10 @@ namespace RealTimeHistogram
             switch (textbox.Name)
             {
                 case "offsetX":
-                    vm.PositionX += offset;
+                    vm.OffsetX += offset;
                     break;
                 case "offsetY":
-                    vm.PositionY += offset;
+                    vm.OffsetY += offset;
                     break;
                 case "Width":
                     vm.Width += offset;
