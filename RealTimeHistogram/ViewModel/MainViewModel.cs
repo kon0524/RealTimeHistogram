@@ -62,6 +62,7 @@ namespace RealTimeHistogram.ViewModel
                 {
                     position.X = value + Screen.AllScreens[ScreenIndex].Bounds.X;
                     position.Width = Screen.AllScreens[ScreenIndex].Bounds.Width - value;
+                    position.Height = position.Width / 2;
                     NotifyPropertyChanged("PositionX");
                     NotifyPropertyChanged("Width");
                 }
@@ -76,7 +77,16 @@ namespace RealTimeHistogram.ViewModel
                 if (0 <= value && value < Screen.AllScreens[ScreenIndex].Bounds.Height)
                 {
                     position.Y = value;
-                    position.Height = Screen.AllScreens[ScreenIndex].Bounds.Height - position.Y;
+                    if (position.Y + position.Height <= Screen.AllScreens[ScreenIndex].Bounds.Height)
+                    {
+                        // Heightは変更しない
+                    }
+                    else
+                    {
+                        position.Height = Screen.AllScreens[ScreenIndex].Bounds.Height - position.Y;
+                        position.Width = position.Height * 2;
+                        NotifyPropertyChanged("Width");
+                    }
                     NotifyPropertyChanged("PositionY");
                 }
             }
@@ -124,6 +134,14 @@ namespace RealTimeHistogram.ViewModel
             ScreenIndex = 0;
             ScaleY = 0;
             position = Screen.AllScreens[ScreenIndex].Bounds;
+            if (position.Width > position.Height * 2)
+            {
+                position.Width = position.Height * 2;
+            }
+            else
+            {
+                position.Height = position.Width / 2;
+            }
 
             Start = new DelegateCommand(startExecute, canStartExecute);
             Stop = new DelegateCommand(stopExecute, canStopExecute);
@@ -157,7 +175,7 @@ namespace RealTimeHistogram.ViewModel
                 {
                     sw.Start();
                     // スクリーンキャプチャ(70ms)
-                    screen = new Bitmap(position.Width, position.Height, PixelFormat.Format24bppRgb);
+                    screen = new Bitmap(position.Width, position.Height, PixelFormat.Format32bppArgb);
                     g = Graphics.FromImage(screen);
                     g.CopyFromScreen(position.X, position.Y, 0, 0, screen.Size);
                     g.Dispose();
@@ -167,7 +185,7 @@ namespace RealTimeHistogram.ViewModel
                     BitmapData data = screen.LockBits(new Rectangle(0, 0, screen.Width, screen.Height), ImageLockMode.ReadOnly, screen.PixelFormat);
                     byte[] buf = new byte[data.Stride * screen.Height];
                     Marshal.Copy(data.Scan0, buf, 0, buf.Length);
-                    for (int i = 0; i < buf.Length; i += 3)
+                    for (int i = 0; i < buf.Length; i += 4)
                     {
                         byte grey = (byte)(0.299 * buf[i] + 0.587 * buf[i + 1] + 0.114 * buf[i + 2]);
                         histo[grey]++;
