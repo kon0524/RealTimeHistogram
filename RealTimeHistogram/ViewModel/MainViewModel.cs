@@ -35,13 +35,66 @@ namespace RealTimeHistogram.ViewModel
             get { return screenIndex; }
             set
             {
-                screenIndex = value;
-                NotifyPropertyChanged("ScreenIndex");
+                if (value < Screen.AllScreens.Length)
+                {
+                    screenIndex = value;
+                    position = Screen.AllScreens[screenIndex].Bounds;
+                    NotifyPropertyChanged("ScreenIndex");
+                    NotifyPropertyChanged("PositionX");
+                    NotifyPropertyChanged("PositionY");
+                    NotifyPropertyChanged("Width");
+                }
             }
         }
 
         // Y軸スケール
         public int ScaleY { get; set; }
+
+        // キャプチャ位置
+        private Rectangle position;
+
+        public int PositionX
+        {
+            get { return position.X - Screen.AllScreens[ScreenIndex].Bounds.X; }
+            set
+            {
+                if (0 <= value && value < Screen.AllScreens[ScreenIndex].Bounds.Width)
+                {
+                    position.X = value + Screen.AllScreens[ScreenIndex].Bounds.X;
+                    position.Width = Screen.AllScreens[ScreenIndex].Bounds.Width - value;
+                    NotifyPropertyChanged("PositionX");
+                    NotifyPropertyChanged("Width");
+                }
+            }
+        }
+
+        public int PositionY
+        {
+            get { return position.Y; }
+            set
+            {
+                if (0 <= value && value < Screen.AllScreens[ScreenIndex].Bounds.Height)
+                {
+                    position.Y = value;
+                    position.Height = Screen.AllScreens[ScreenIndex].Bounds.Height - position.Y;
+                    NotifyPropertyChanged("PositionY");
+                }
+            }
+        }
+
+        public int Width
+        {
+            get { return position.Width; }
+            set
+            {
+                if (0 < value && value <= Screen.AllScreens[ScreenIndex].Bounds.Width - (position.X - Screen.AllScreens[ScreenIndex].Bounds.X))
+                {
+                    position.Width = value;
+                    position.Height = position.Width / 2;
+                    NotifyPropertyChanged("Width");
+                }
+            }
+        }
 
         // 削除
         public ICommand Start { get; set; }
@@ -70,6 +123,7 @@ namespace RealTimeHistogram.ViewModel
             isExecuting = false;
             ScreenIndex = 0;
             ScaleY = 0;
+            position = Screen.AllScreens[ScreenIndex].Bounds;
 
             Start = new DelegateCommand(startExecute, canStartExecute);
             Stop = new DelegateCommand(stopExecute, canStopExecute);
@@ -95,31 +149,30 @@ namespace RealTimeHistogram.ViewModel
             Task.Run(() => 
             {
                 Stopwatch sw = new Stopwatch();
-                Rectangle rect = Screen.AllScreens[ScreenIndex].Bounds;
-                Bitmap screen = new Bitmap(rect.Width, rect.Height, PixelFormat.Format24bppRgb);
-                Graphics g = Graphics.FromImage(screen);
+                Bitmap screen;
+                Graphics g;
                 UInt32[] histo;
 
                 while (isExecuting)
                 {
                     sw.Start();
                     // スクリーンキャプチャ(70ms)
-                    g.CopyFromScreen(rect.X, rect.Y, 0, 0, screen.Size);
-
-                    // 2:1にトリミング(2ms)
-                    Bitmap equi = screen.Clone(new Rectangle(0, 0, screen.Width, (screen.Width / 2)), PixelFormat.Format24bppRgb);
+                    screen = new Bitmap(position.Width, position.Height, PixelFormat.Format24bppRgb);
+                    g = Graphics.FromImage(screen);
+                    g.CopyFromScreen(position.X, position.Y, 0, 0, screen.Size);
+                    g.Dispose();
 
                     // 輝度計算(25ms)
                     histo = new UInt32[256];
-                    BitmapData data = equi.LockBits(new Rectangle(0, 0, equi.Width, equi.Height), ImageLockMode.ReadOnly, equi.PixelFormat);
-                    byte[] buf = new byte[data.Stride * equi.Height];
+                    BitmapData data = screen.LockBits(new Rectangle(0, 0, screen.Width, screen.Height), ImageLockMode.ReadOnly, screen.PixelFormat);
+                    byte[] buf = new byte[data.Stride * screen.Height];
                     Marshal.Copy(data.Scan0, buf, 0, buf.Length);
                     for (int i = 0; i < buf.Length; i += 3)
                     {
                         byte grey = (byte)(0.299 * buf[i] + 0.587 * buf[i + 1] + 0.114 * buf[i + 2]);
                         histo[grey]++;
                     }
-                    equi.UnlockBits(data);
+                    screen.UnlockBits(data);
 
                     // チャート表示(0ms)
                     App.Current.Dispatcher.Invoke(() => 
@@ -156,7 +209,7 @@ namespace RealTimeHistogram.ViewModel
 
                     using (MemoryStream ms = new MemoryStream())
                     {
-                        equi.Save(ms, ImageFormat.Bmp);
+                        screen.Save(ms, ImageFormat.Bmp);
                         ms.Seek(0, SeekOrigin.Begin);
 
                         BitmapImage img = new BitmapImage();
@@ -168,7 +221,7 @@ namespace RealTimeHistogram.ViewModel
 
                         CaptureImage = img;
                     }
-                    
+                    screen.Dispose();
                     Thread.Sleep(100);
                 }
             });
