@@ -40,6 +40,9 @@ namespace RealTimeHistogram
                 case "Width":
                     vm.Width += offset;
                     break;
+                case "scaleY":
+                    vm.ScaleY += offset * 100;
+                    break;
                 default:
                     break;
             }

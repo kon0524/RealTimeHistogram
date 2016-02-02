@@ -48,7 +48,18 @@ namespace RealTimeHistogram.ViewModel
         }
 
         // Y軸スケール
-        public int ScaleY { get; set; }
+        private int scaleY;
+        public int ScaleY {
+            get { return scaleY; }
+            set
+            {
+                if (value >= 0)
+                {
+                    scaleY = value;
+                    NotifyPropertyChanged("ScaleY");
+                }
+            }
+        }
 
         // キャプチャ位置
         private Rectangle position;
