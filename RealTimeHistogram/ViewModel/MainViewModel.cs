@@ -198,6 +198,54 @@ namespace RealTimeHistogram.ViewModel
                 Width = selectedWindowRect.Width - OffsetX;
             }
         }
+
+        /// <summary>
+        /// ヒストグラムを計算する
+        /// </summary>
+        /// <param name="image">対象画像</param>
+        /// <returns></returns>
+        private UInt32[] calcHistogram(Bitmap image)
+        {
+            if (image == null) return null;
+
+            UInt32[] histogram = new UInt32[256];
+
+            BitmapData data = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadOnly, image.PixelFormat);
+            byte[] buf = new byte[data.Stride * image.Height];
+            Marshal.Copy(data.Scan0, buf, 0, buf.Length);
+            for (int i = 0; i < buf.Length; i += 4)
+            {
+                byte grey = (byte)(0.299 * buf[i] + 0.587 * buf[i + 1] + 0.114 * buf[i + 2]);
+                histogram[grey]++;
+            }
+            image.UnlockBits(data);
+
+            return histogram;
+        }
+
+        /// <summary>
+        /// BitmapをBitmapImageに変換する
+        /// </summary>
+        /// <param name="image"></param>
+        /// <returns></returns>
+        private BitmapImage getBitmapImage(Bitmap image)
+        {
+            if (image == null) return null;
+
+            BitmapImage bImage = new BitmapImage();
+            using (MemoryStream ms = new MemoryStream())
+            {
+                image.Save(ms, ImageFormat.Bmp);
+                ms.Seek(0, SeekOrigin.Begin);
+                bImage.BeginInit();
+                bImage.CacheOption = BitmapCacheOption.OnLoad;
+                bImage.StreamSource = ms;
+                bImage.EndInit();
+                bImage.Freeze();
+            }
+
+            return bImage;
+        }
         #endregion
 
         #region Commands
@@ -246,16 +294,7 @@ namespace RealTimeHistogram.ViewModel
                     g.Dispose();
 
                     // 輝度計算(25ms)
-                    histo = new UInt32[256];
-                    BitmapData data = screen.LockBits(new Rectangle(0, 0, screen.Width, screen.Height), ImageLockMode.ReadOnly, screen.PixelFormat);
-                    byte[] buf = new byte[data.Stride * screen.Height];
-                    Marshal.Copy(data.Scan0, buf, 0, buf.Length);
-                    for (int i = 0; i < buf.Length; i += 4)
-                    {
-                        byte grey = (byte)(0.299 * buf[i] + 0.587 * buf[i + 1] + 0.114 * buf[i + 2]);
-                        histo[grey]++;
-                    }
-                    screen.UnlockBits(data);
+                    histo = calcHistogram(screen);
 
                     // チャート表示(0ms)
                     App.Current.Dispatcher.Invoke(() => 
@@ -288,20 +327,7 @@ namespace RealTimeHistogram.ViewModel
                     });
 
                     // キャプチャ画像表示
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        screen.Save(ms, ImageFormat.Bmp);
-                        ms.Seek(0, SeekOrigin.Begin);
-
-                        BitmapImage img = new BitmapImage();
-                        img.BeginInit();
-                        img.CacheOption = BitmapCacheOption.OnLoad;
-                        img.StreamSource = ms;
-                        img.EndInit();
-                        img.Freeze();
-
-                        CaptureImage = img;
-                    }
+                    CaptureImage = getBitmapImage(screen);
                     screen.Dispose();
 
                     Thread.Sleep(100);
