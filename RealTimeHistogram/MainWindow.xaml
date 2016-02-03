@@ -4,6 +4,7 @@
         xmlns:wfc="clr-namespace:System.Windows.Forms.DataVisualization.Charting;assembly=System.Windows.Forms.DataVisualization"
         Title="{Binding WindowTitle}" Height="500" Width="525">
     <DockPanel>
+        <!-- Window選択 -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
             <Label Content="Select Window" Width="120" />
             <ComboBox Width="100" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}">
@@ -15,12 +16,15 @@
             </ComboBox>
             <Button Width="100" Content="Refresh" Command="{Binding Refresh}" />
         </StackPanel>
+        
+        <!-- キャプチャ開始・停止 -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
             <Label Content="Capture" Width="120" />
             <Button Content="Start" Width="100" Command="{Binding Start}" />
             <Button Content="Stop"  Width="100" Command="{Binding Stop}"/>
         </StackPanel>
 
+        <!-- 位置調整 -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
             <Label Content="Position" Width="120" />
             <TextBlock Text="Offset X:" VerticalAlignment="Center" Margin="5,0,5,0" />
@@ -30,10 +34,14 @@
             <TextBlock Text="Width:" VerticalAlignment="Center" Margin="5,0,5,0" />
             <TextBox Width="50" Name="Width" Text="{Binding Width}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
         </StackPanel>
+        
+        <!-- ヒストグラムスケール -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
             <Label Content="Histogram Scale" Width="120" />
             <TextBox Width="50" Name="scaleY" Text="{Binding ScaleY, UpdateSourceTrigger=PropertyChanged}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
         </StackPanel>
+        
+        <!-- ヒストグラム -->
         <WindowsFormsHost Name="graph">
             <wfc:Chart />
         </WindowsFormsHost>

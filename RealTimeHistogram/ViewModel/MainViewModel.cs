@@ -10,8 +10,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
@@ -20,6 +18,7 @@ namespace RealTimeHistogram.ViewModel
 {
     public class MainViewModel : ViewModelBase
     {
+        #region Properties
         // キャプチャイメージ
         private BitmapImage captureImage;
         public BitmapImage CaptureImage
@@ -43,10 +42,12 @@ namespace RealTimeHistogram.ViewModel
             set
             {
                 selectedProcess = value;
+                NotifyPropertyChanged("SelectedProcess");
+
+                // Windowを変更したらOffsetを初期化する
                 selectedWindowRect = wm.GetWindowRectangle(selectedProcess);
                 OffsetX = OffsetY = 0;
                 Width = selectedWindowRect.Width;
-                NotifyPropertyChanged("SelectedProcess");
             }
         }
 
@@ -123,7 +124,9 @@ namespace RealTimeHistogram.ViewModel
 
         // Windowタイトル
         public string WindowTitle { get; private set; }
+        #endregion
 
+        #region Fields
         // 実行状態
         private bool isExecuting;
 
@@ -138,7 +141,9 @@ namespace RealTimeHistogram.ViewModel
 
         // キャプチャ画像表示Window
         private CaptureImageWindow captureImageWindow;
+        #endregion
 
+        #region Constructor
         /// <summary>
         /// コンストラクタ
         /// </summary>
@@ -147,6 +152,7 @@ namespace RealTimeHistogram.ViewModel
         {
             this.chart = chart;
 
+            // 各種初期化
             WindowTitle = "RealTimeHistogram " + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).ProductVersion;
             isExecuting = false;
             OffsetX = offsetY = Width = 0;
@@ -169,7 +175,9 @@ namespace RealTimeHistogram.ViewModel
                 if (captureImageWindow != null) captureImageWindow.Close();
             });
         }
+        #endregion
 
+        #region Methods
         private void UpdatePosition()
         {
             // OffsetXの確認
@@ -190,7 +198,9 @@ namespace RealTimeHistogram.ViewModel
                 Width = selectedWindowRect.Width - OffsetX;
             }
         }
+        #endregion
 
+        #region Commands
         /// <summary>
         /// スタートボタンの実行可否
         /// </summary>
@@ -210,14 +220,12 @@ namespace RealTimeHistogram.ViewModel
             isExecuting = true;
             Task.Run(() => 
             {
-                Stopwatch sw = new Stopwatch();
                 Bitmap screen;
                 Graphics g;
                 UInt32[] histo;
 
                 while (isExecuting)
                 {
-                    sw.Start();
                     // スクリーンキャプチャ(70ms)
                     selectedWindowRect = wm.GetWindowRectangle(SelectedProcess);
                     if (selectedWindowRect == Rectangle.Empty)
@@ -279,9 +287,7 @@ namespace RealTimeHistogram.ViewModel
                         chart.ChartAreas["ChartArea1"].AxisY.Enabled = AxisEnabled.False;
                     });
 
-                    sw.Stop();
-                    sw.Reset();
-
+                    // キャプチャ画像表示
                     using (MemoryStream ms = new MemoryStream())
                     {
                         screen.Save(ms, ImageFormat.Bmp);
@@ -297,6 +303,7 @@ namespace RealTimeHistogram.ViewModel
                         CaptureImage = img;
                     }
                     screen.Dispose();
+
                     Thread.Sleep(100);
                 }
             });
@@ -341,5 +348,6 @@ namespace RealTimeHistogram.ViewModel
             selectedWindowRect = wm.GetWindowRectangle(SelectedProcess);
             UpdatePosition();
         }
+        #endregion
     }
 }
