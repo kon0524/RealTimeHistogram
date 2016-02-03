@@ -5,11 +5,6 @@
         Title="{Binding WindowTitle}" Height="500" Width="525">
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-            <Label Content="Capture" Width="120" />
-            <Button Content="Start" Width="100" Command="{Binding Start}" />
-            <Button Content="Stop"  Width="100" Command="{Binding Stop}"/>
-        </StackPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
             <Label Content="Select Window" Width="120" />
             <ComboBox Width="100" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}">
                 <ComboBox.ItemTemplate>
@@ -20,6 +15,12 @@
             </ComboBox>
             <Button Width="100" Content="Refresh" Command="{Binding Refresh}" />
         </StackPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+            <Label Content="Capture" Width="120" />
+            <Button Content="Start" Width="100" Command="{Binding Start}" />
+            <Button Content="Stop"  Width="100" Command="{Binding Stop}"/>
+        </StackPanel>
+
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
             <Label Content="Position" Width="120" />
             <TextBlock Text="Offset X:" VerticalAlignment="Center" Margin="5,0,5,0" />
