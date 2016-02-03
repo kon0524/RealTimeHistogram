@@ -34,7 +34,6 @@
             <Label Content="Histogram Scale" Width="120" />
             <TextBox Width="50" Name="scaleY" Text="{Binding ScaleY, UpdateSourceTrigger=PropertyChanged}" MouseWheel="TextBox_MouseWheel" VerticalAlignment="Center" />
         </StackPanel>
-        <Image DockPanel.Dock="Bottom" Height="200" Source="{Binding CaptureImage}" />
         <WindowsFormsHost Name="graph">
             <wfc:Chart />
         </WindowsFormsHost>

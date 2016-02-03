@@ -1,6 +1,7 @@
 ﻿using RealTimeHistogram.Model;
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -9,6 +10,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Windows.Input;
@@ -16,7 +18,7 @@ using System.Windows.Media.Imaging;
 
 namespace RealTimeHistogram.ViewModel
 {
-    class MainViewModel : ViewModelBase
+    public class MainViewModel : ViewModelBase
     {
         // キャプチャイメージ
         private BitmapImage captureImage;
@@ -134,6 +136,9 @@ namespace RealTimeHistogram.ViewModel
         // 選択中Windowの位置
         private Rectangle selectedWindowRect;
 
+        // キャプチャ画像表示Window
+        private CaptureImageWindow captureImageWindow;
+
         /// <summary>
         /// コンストラクタ
         /// </summary>
@@ -157,6 +162,12 @@ namespace RealTimeHistogram.ViewModel
             Start = new DelegateCommand(startExecute, canStartExecute);
             Stop = new DelegateCommand(stopExecute, canStopExecute);
             Refresh = new DelegateCommand(refreshExecute, null);
+
+            // MainWindowが閉じられたら子Windowも閉じるようにする
+            App.Current.MainWindow.Closing += new CancelEventHandler((obj, args) => 
+            {
+                if (captureImageWindow != null) captureImageWindow.Close();
+            });
         }
 
         private void UpdatePosition()
@@ -289,6 +300,9 @@ namespace RealTimeHistogram.ViewModel
                     Thread.Sleep(100);
                 }
             });
+
+            captureImageWindow = new CaptureImageWindow(this);
+            captureImageWindow.Show();
         }
 
         /// <summary>
@@ -308,6 +322,8 @@ namespace RealTimeHistogram.ViewModel
         private void stopExecute(object parameter)
         {
             isExecuting = false;
+            captureImageWindow.Close();
+            captureImageWindow = null;
         }
 
         /// <summary>

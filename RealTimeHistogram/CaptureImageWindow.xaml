@@ -1,0 +1,6 @@
+﻿<Window x:Class="RealTimeHistogram.CaptureImageWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CaptureImageWindow" Height="300" Width="500">
+    <Image Source="{Binding CaptureImage}" />
+</Window>
