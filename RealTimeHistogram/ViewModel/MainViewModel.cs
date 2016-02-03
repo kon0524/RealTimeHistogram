@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
@@ -174,6 +175,9 @@ namespace RealTimeHistogram.ViewModel
             {
                 if (captureImageWindow != null) captureImageWindow.Close();
             });
+
+            App.Current.MainWindow.PreviewDragOver += new DragEventHandler(previewDragOver);
+            App.Current.MainWindow.Drop += new DragEventHandler(drop);
         }
         #endregion
 
@@ -373,6 +377,81 @@ namespace RealTimeHistogram.ViewModel
             SelectedProcess = Processes[0];
             selectedWindowRect = wm.GetWindowRectangle(SelectedProcess);
             UpdatePosition();
+        }
+        #endregion
+
+        #region Events
+        /// <summary>
+        /// DragOverイベント
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void previewDragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop, true)) e.Effects = DragDropEffects.Copy;
+            else e.Effects = DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Dropイベント
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void drop(object sender, DragEventArgs e)
+        {
+            string[] images = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (images == null) return;
+
+            // キャプチャ中なら停止する
+            if (captureImageWindow != null)
+            {
+                captureImageWindow.Close();
+                captureImageWindow = null;
+            }
+            if (isExecuting)
+            {
+                isExecuting = false;
+            }
+
+            // ヒストグラムを計算
+            Bitmap image = new Bitmap(images[0]);
+            UInt32[] histogram = calcHistogram(image);
+
+            // ヒストグラム表示
+            chart.ChartAreas.Clear();
+            chart.ChartAreas.Add("ChartArea1");
+            Series series = new Series();
+            series.ChartType = SeriesChartType.Column;
+            series.MarkerStyle = MarkerStyle.None;
+            for (int i = 0; i < histogram.Length; i++)
+            {
+                series.Points.AddXY((double)i, (double)histogram[i]);
+            }
+            chart.Series.Clear();
+            chart.Series.Add(series);
+
+            // X軸の設定
+            chart.ChartAreas["ChartArea1"].AxisX.Minimum = 0;
+            chart.ChartAreas["ChartArea1"].AxisX.Maximum = 255;
+            chart.ChartAreas["ChartArea1"].AxisX.MajorGrid.Enabled = false;
+
+            // Y軸の設定
+            if (ScaleY != 0)
+            {
+                chart.ChartAreas["ChartArea1"].AxisY.Minimum = 0;
+                chart.ChartAreas["ChartArea1"].AxisY.Maximum = ScaleY;
+            }
+            chart.ChartAreas["ChartArea1"].AxisY.MajorGrid.Enabled = false;
+            chart.ChartAreas["ChartArea1"].AxisY.Enabled = AxisEnabled.False;
+
+            // 画像を表示
+            CaptureImage = getBitmapImage(image);
+            image.Dispose();
+
+            // 子Windows表示
+            captureImageWindow = new CaptureImageWindow(this);
+            captureImageWindow.Show();
         }
         #endregion
     }
