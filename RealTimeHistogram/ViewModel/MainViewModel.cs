@@ -168,7 +168,7 @@ namespace RealTimeHistogram.ViewModel
 
             Start = new DelegateCommand(startExecute, canStartExecute);
             Stop = new DelegateCommand(stopExecute, canStopExecute);
-            Refresh = new DelegateCommand(refreshExecute, null);
+            Refresh = new DelegateCommand(refreshExecute, canRefreshExecute);
 
             // MainWindowが閉じられたら子Windowも閉じるようにする
             App.Current.MainWindow.Closing += new CancelEventHandler((obj, args) => 
@@ -363,6 +363,16 @@ namespace RealTimeHistogram.ViewModel
             isExecuting = false;
             captureImageWindow.Close();
             captureImageWindow = null;
+        }
+
+        /// <summary>
+        /// リフレッシュボタンの実行可否
+        /// </summary>
+        /// <param name="parameter"></param>
+        /// <returns></returns>
+        private bool canRefreshExecute(object parameter)
+        {
+            return !isExecuting;
         }
 
         /// <summary>
