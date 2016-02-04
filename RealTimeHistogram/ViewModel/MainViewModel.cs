@@ -285,6 +285,8 @@ namespace RealTimeHistogram.ViewModel
                         isExecuting = false;
                         App.Current.Dispatcher.Invoke(() => 
                         {
+                            captureImageWindow.Close();
+                            captureImageWindow = null;
                             RaiseCanExecuteChanged();
                         });
                         
