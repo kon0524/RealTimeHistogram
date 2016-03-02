@@ -338,6 +338,13 @@ namespace RealTimeHistogram.ViewModel
 
                     Thread.Sleep(100);
                 }
+
+                // 停止したらヒストグラムを消す
+                App.Current.Dispatcher.Invoke(() => 
+                {
+                    chart.ChartAreas.Clear();
+                    chart.Series.Clear();
+                });
             });
 
             captureImageWindow = new CaptureImageWindow(this);
