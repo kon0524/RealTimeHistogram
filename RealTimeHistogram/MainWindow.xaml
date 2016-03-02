@@ -8,10 +8,10 @@
         <!-- Window選択 -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
             <Label Content="Select Window" Width="120" />
-            <ComboBox Width="100" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}">
+            <ComboBox Width="100" ItemsSource="{Binding Processes}" SelectedItem="{Binding SelectedProcess}" VerticalContentAlignment="Center">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding ProcessName}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ProcessName}" />
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
